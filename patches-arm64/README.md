@@ -339,3 +339,14 @@ navigator and most of the engine were lost, and on the arm64 line sounds behind 
 `0056` puts static objects in speaker-bit order and `0057` renders a bed with more channels than the device through
 AUSpatialMixer, for speakers or headphones (`HB_SPATIAL=speakers|headphones|external` overrides the guess, `HB_SPATIAL=0`
 turns it off). Tested by Tx on the Intel line with Forza Horizon 6, not yet run on the arm64 line.
+
+### System call writes into the emulator's write trap (0058)
+
+FEX makes a read-write-execute page that holds translated code read-execute, so that a write into it faults into
+its tracking of self-modifying code. A system call that wrote into such a page for the program faulted on the Unix
+side and returned STATUS_ACCESS_VIOLATION, where the Windows kernel writes: a buffer next to code that ran could not
+take a read, a copy or a query. Football Manager 27's copy protection asks for the SMBIOS table that way and stopped
+the game at "Loading game database". `0058` marks the pages the emulator traps (ntdll's ARM64EC side asks
+`GuestProtection` from `0043`), lets a write from inside a system call through to a marked page, and gives the page
+its trap back when the call returns. tests/x64-fidelity `syscallwrite`: 6 of 11 checks passed before, all 11 under
+Rosetta 2 (M5 Pro, macOS 27.2).
